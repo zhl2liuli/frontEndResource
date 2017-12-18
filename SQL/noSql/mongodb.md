@@ -297,3 +297,83 @@ mongoDB
   删除用户：
     db.dropUser(username)
 ```
+### 主从复制(replica set)
+
+```text
+  主从复制：一个简单的数据库同步备份的集群技术
+    主服务器只有一台
+    --master
+    --slave
+    --source
+  主库启动配置：
+    dbpath = 主库服务器数据地址
+    port = 
+    bind_ip = 
+    master = true
+  主库启动配置：
+    dbpath = 从服务器数据地址
+    port =
+    bind_ip = 
+    source = 主服务器地址和端口（也可以在shell中动态设置）
+    slave = true
+  注意：从服务器默认不可读写 db.getMongo().setSlaveOk()设置可读
+  其他配置项：
+    only  从节点指定复制某个数据库,默认是复制全部数据库
+    slavedelay  从节点设置主数据库同步数据的延迟(单位是秒)
+    fastsync 从节点以主数据库的节点快照为节点启动从数据库
+    autoresync 从节点如果不同步则从新同步数据库
+    oplogSize  主节点设置oplog的大小(主节点操作记录存储到local的oplog中)
+  从服务器的local数据中的sources集中保存着主主服务器的信息
+     可以
+       db.sources.insert({"host":主服务器id和port}) ==>设置主服务器
+       db.sources.remove({"host":主服务器id和port}) ==>删除主服务器
+  replset:rs1，
+  rs.initiate(cfg) ==> 初始化
+    cfg = { 
+      _id:"rs1", 
+      members:[
+        {_id:0,host:'id:port',priority:2}, 
+        {_id:1,host:'id:port',priority:1},
+        {_id:2,host:'id:port',arbiterOnly:true}
+      ]}
+  rs.status() ==> 配置结果信息
+
+  [主从服务器例子](http://blog.csdn.net/zx13525079024/article/details/52911704)
+  
+```
+
+### 分片
+
+```text
+  何时分片：
+    复制所有的写入操作到主节点
+    延迟的敏感数据会在主节点查询
+    单个副本集限制在12个节点
+    当请求量巨大时会出现内存不足。
+    本地磁盘不足
+    垂直扩展价格昂贵
+  结构：
+    Router ==> 前段路由
+    Config Server ==> 配置服务器存储整个ClusterMetadata
+    Shard01 Shard02 ... ==> 片块
+  步骤：
+    创建一个配置服务器
+    创建路由服务器
+      mongos --port 1000 --configdb 127.0.0.1:2000
+      configdb是连接的配置服务器
+    创建分片服务器
+    在路由服务器中设置片区
+      db.runCommand({addshard:ip:port,allowLocal:true})
+      db.runCommand({addshard:ip:port,allowLocal:true})
+      ...
+    为某数据库打开分片功能：
+      db.runCommand({"enablesharding":databaseName})
+    为某集合分片：
+      db.runCommand({"shardcollection":"databaseName.documentName","key":{"_id":1}}) 
+      key==>也可以time分片
+  查看配置库对于分片服务器的配置存储
+    db.printShardingStatus()
+  查看集群对bar的自动分片机制配置信息
+    mongos> db.shards.find()
+  [详细例子](http://www.runoob.com/mongodb/mongodb-sharding.html)
+```
